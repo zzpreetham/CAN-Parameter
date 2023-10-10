@@ -2,48 +2,45 @@ package com.royalenfield.evcansim;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.content.ComponentName;
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
-import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
-import android.widget.ProgressBar;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.security.Key;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Timer;
-import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity {
 
-    SeekBar speed_change, distance, odometer, vehicle_chrg, chrgtym, progressbarSOC, lowSOC, battery_SOH;
-    TextView txtspeed, txtdistance, txtodo, txtvehiclechrg, txtchrgtym, txtsoc, txtLowSoc, txtbatterysoh;
+    SeekBar speed_change, distance, odometer, chrgtym, progressbarSOC, lowSOC, battery_SOH;
+    TextView txtspeed, txtdistance, txtodo, txtvehiclechrg, txtchrgtym, txtsoc, txtLowSoc, txtbatterysoh, ride_mode_val;
 
-    Switch right_switch, left_switch, hazard_switch, vehicle_err_switch, regen_switch, abs_switch;
+    Switch right_switch, left_switch, hazard_switch, vehicle_err_switch, regen_switch, abs_switch, reverse_mode;
 
-    boolean rightstr, leftstr, hazardstr, errorstr, regenstr, abs_str = false;
-
-
-    Button button;
+    boolean rightstr, leftstr, hazardstr, errorstr, regenstr, reverse_str = false;
+    String abs_str = "";
+    Button start_btn, stop_btn;
 
     ArrayList<JSONObject> arrayList = new ArrayList();
-    ArrayList<Parameters> paramsarrayList ;
+    ArrayList<Parameters> paramsarrayList;
 
     private String value = "", key = "";
 
     CountDownTimer countDownTimer;
+    RadioButton ridemode, chargeMode;
+    RadioGroup radioGroup, charging_Group;
+
+    String ride_mode_str, charge_mode_str = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,7 +52,6 @@ public class MainActivity extends AppCompatActivity {
         speed_change = findViewById(R.id.speed_change);
         distance = findViewById(R.id.distance_change);
         odometer = findViewById(R.id.odo_change);
-        vehicle_chrg = findViewById(R.id.charge_state);
         chrgtym = findViewById(R.id.charge_time);
 
         txtspeed = findViewById(R.id.spd);
@@ -66,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
         txtsoc = findViewById(R.id.txt_soc);
         txtLowSoc = findViewById(R.id.txt_low_soc);
         txtbatterysoh = findViewById(R.id.txt_battery_soh);
+        ride_mode_val = findViewById(R.id.ride_mode_val);
 
         progressbarSOC = findViewById(R.id.vehicle_soc);
         lowSOC = findViewById(R.id.vehicle_low_soc);
@@ -77,17 +74,21 @@ public class MainActivity extends AppCompatActivity {
         vehicle_err_switch = findViewById(R.id.vehicle_err_switch);
         regen_switch = findViewById(R.id.regen_switch);
         abs_switch = findViewById(R.id.abs_switch);
+        reverse_mode = findViewById(R.id.reverse_switch);
 
-        button = findViewById(R.id.start_btn);
+        radioGroup = findViewById(R.id.radioGroup);
+        charging_Group = findViewById(R.id.charging_Group);
+
+        start_btn = findViewById(R.id.start_btn);
+        stop_btn = findViewById(R.id.stop_btn);
 
         rightstr = false;
         leftstr = false;
         hazardstr = false;
         errorstr = false;
         regenstr = false;
-        abs_str = false;
 
-
+        //Seekbar to change value
         speed_change.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             int progressChangedValuespd = 0;
 
@@ -95,6 +96,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean b) {
                 progressChangedValuespd = progress;
+                txtspeed.setText(String.valueOf(progressChangedValuespd));
             }
 
             @Override
@@ -104,7 +106,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                txtspeed.setText(String.valueOf(progressChangedValuespd));
+
             }
         });
 
@@ -114,6 +116,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean b) {
                 progressChangedValuedist = progress;
+                txtdistance.setText(String.valueOf(progressChangedValuedist));
             }
 
             @Override
@@ -123,7 +126,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                txtdistance.setText(String.valueOf(progressChangedValuedist));
+
             }
         });
         odometer.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -132,25 +135,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean b) {
                 progressChangedValueodo = progress;
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
                 txtodo.setText(String.valueOf(progressChangedValueodo));
             }
-        });
-        vehicle_chrg.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            int progressChangedValuechrgng = 0;
-
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean b) {
-                progressChangedValuechrgng = progress;
-            }
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
@@ -159,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                txtvehiclechrg.setText(String.valueOf(progressChangedValuechrgng ));
+
             }
         });
         chrgtym.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -168,6 +154,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean b) {
                 progressChangedValuechrgtym = progress;
+                txtchrgtym.setText(String.valueOf(progressChangedValuechrgtym));
             }
 
             @Override
@@ -177,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                txtchrgtym.setText(String.valueOf(progressChangedValuechrgtym ));
+
             }
         });
 
@@ -187,6 +174,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean b) {
                 progressChangedValuesoc = progress;
+                txtsoc.setText(String.valueOf(progressChangedValuesoc));
             }
 
             @Override
@@ -196,7 +184,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                txtsoc.setText(String.valueOf(progressChangedValuesoc));
+
             }
         });
         lowSOC.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -205,6 +193,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean b) {
                 progressChangedValuelowsoc = progress;
+                txtLowSoc.setText(String.valueOf(progressChangedValuelowsoc));
             }
 
             @Override
@@ -214,7 +203,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                txtLowSoc.setText(String.valueOf(progressChangedValuelowsoc ));
+
             }
         });
         battery_SOH.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -223,6 +212,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean b) {
                 progressChangedValuebattrysoh = progress;
+                txtbatterysoh.setText(String.valueOf(progressChangedValuebattrysoh));
+
             }
 
             @Override
@@ -232,10 +223,10 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                txtbatterysoh.setText(String.valueOf(progressChangedValuebattrysoh) );
             }
         });
 
+        //toogle switch parameters
         right_switch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -306,132 +297,85 @@ public class MainActivity extends AppCompatActivity {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
 
                 if (isChecked) {
-                    abs_str = true;
+                    abs_str = "0";
                     Toast.makeText(MainActivity.this, "ABS ON", Toast.LENGTH_SHORT).show();
                 } else {
-                    abs_str = false;
+                    abs_str = "1";
+                    Toast.makeText(MainActivity.this, "ABS OFF", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        reverse_mode.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+
+                if (isChecked) {
+                    reverse_str = true;
+                    Toast.makeText(MainActivity.this, "ABS ON", Toast.LENGTH_SHORT).show();
+                } else {
+                    reverse_str = false;
                     Toast.makeText(MainActivity.this, "ABS OFF", Toast.LENGTH_SHORT).show();
                 }
             }
         });
 
-        button.setOnClickListener(new View.OnClickListener() {
+        radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                ridemode = group.findViewById(checkedId);
+                ride_mode_str = String.valueOf(ridemode.getText());
+                ride_mode_val.setText(ride_mode_str);
+                if (ride_mode_str.equalsIgnoreCase("Eco")) {
+                    ride_mode_str = "ES";
+                    Log.d("radiobtnnn", ride_mode_str + "");
+                } else if (ride_mode_str.equalsIgnoreCase("Tour")) {
+                    ride_mode_str = "ST";
+                    Log.d("radiobtnnn", ride_mode_str + "");
+                } else if (ride_mode_str.equalsIgnoreCase("Sports")) {
+                    ride_mode_str = "IS";
+                    Log.d("radiobtnnn", ride_mode_str + "");
+                }
+            }
+        });
+        charging_Group.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                chargeMode = group.findViewById(checkedId);
+                charge_mode_str = String.valueOf(chargeMode.getText());
+                txtvehiclechrg.setText(charge_mode_str);
+                if (charge_mode_str.equalsIgnoreCase("Off")) {
+                    charge_mode_str = "DISABLED";
+                    Log.d("radiobtnnn", charge_mode_str + "");
+                } else if (charge_mode_str.equalsIgnoreCase("Error")) {
+                    charge_mode_str = "STATIC";
+                    Log.d("radiobtnnn", charge_mode_str + "");
+                } else if (charge_mode_str.equalsIgnoreCase("In Progress")) {
+                    charge_mode_str = "FREQ";
+                    Log.d("radiobtnnn", charge_mode_str + "");
+                } else if (charge_mode_str.equalsIgnoreCase("Complete")) {
+                    charge_mode_str = "OUTPUT";
+                    Log.d("radiobtnnn", charge_mode_str + "");
+                }
+            }
+        });
+
+        //button to start the data broadcasting
+        start_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 newLogic();
-
-
-                /*JSONObject jsonObject = new JSONObject();
-                CountDownTimer updateTimer=new CountDownTimer(5000, 100) {
-                    public void onTick(long millisUntilFinished) {
-                        txtspeed.setText(String.valueOf(Integer.parseInt(txtspeed.getText().toString()) + 1));
-                        txtdistance.setText(String.valueOf(Integer.parseInt(txtdistance.getText().toString()) + 1));
-                        paramsarrayList.add(new Parameters("speed",String.valueOf(Integer.parseInt(txtspeed.getText().toString()) + 1),"123469"));
-                        paramsarrayList.add(new Parameters("distance",String.valueOf(Integer.parseInt(txtdistance.getText().toString()) + 1),"123456"));
-                        paramsarrayList.add(new Parameters("odometer",String.valueOf(Integer.parseInt(txtodo.getText().toString())),"987645"));
-                    }
-
-                    public void onFinish() {
-                        new CountDownTimer(5000, 2) {
-                            public void onTick(long millisUntilFinished) {
-                                Long tsLong = System.currentTimeMillis()/1000;
-                                String ts = tsLong.toString();
-                                try {
-                                    //JSON object adding in list an creating new json array as per RE document
-                                    JSONObject speedJson=new JSONObject();
-                                    for(int i=0;i<paramsarrayList.size();i++){
-                                        jsonObject.put("signal",paramsarrayList.get(i).getKey());
-                                        jsonObject.put("canid",paramsarrayList.get(i).getCanid());
-                                        jsonObject.put("data",paramsarrayList.get(i).getValue());
-                                        jsonObject.put("timestamp",System.currentTimeMillis());
-                                        //jsonObject.put("SignalPacket", speedJson);
-                                        //arrayList.add(jsonObject);
-
-                                        *//*try {
-                                            Iterator iteratorObj = jsonObject.keys();
-                                            while (iteratorObj.hasNext()) {
-                                                String getJsonObj = (String) iteratorObj.next();
-                                                System.out.println("Book No.: " + "------>" + getJsonObj);
-                                                key = getJsonObj;
-                                                value = jsonObject.getString(key);
-                                                Log.v("Book Title key", key + "\t" + value);
-
-                                                MessageSender.sendBroadcast(MainActivity.this, value, key);
-                                            }
-                                        } catch (Exception e) {
-                                            e.printStackTrace();
-                                        }*//*
-                                        Log.d("listttttttt", jsonObject.toString()+ "");
-                                    }
-
-                                } catch (JSONException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-
-                            public void onFinish() {
-
-                            }
-                        }.start();
-                    }
-                }.start();*/
-
-
-                //TODO: 100ms upload and evry 50ms change data
-
-                /*new CountDownTimer(5000, 1000) {
-                    public void onTick(long millisUntilFinished) {
-                        try {
-                            Iterator iteratorObj = jsonObject.keys();
-                            while (iteratorObj.hasNext()) {
-                                String getJsonObj = (String) iteratorObj.next();
-                                System.out.println("Book No.: " + "------>" + getJsonObj);
-                                key = getJsonObj;
-                                value = jsonObject.getString(key);
-                                Log.v("Book Title key", key + "\t" + value);
-
-                                MessageSender.sendBroadcast(MainActivity.this, value, key);
-                            }
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-
-                    public void onFinish() {
-                        start();
-                    }
-                }.start();*/
-
-
-                //new logic as per RE document
-               /* new CountDownTimer(5000, 1000) {
-                    public void onTick(long millisUntilFinished) {
-                        try {
-                            Iterator iteratorObj = jsonObject.keys();
-                            while (iteratorObj.hasNext()) {
-                                String getJsonObj = (String) iteratorObj.next();
-                                System.out.println("Book No.: " + "------>" + getJsonObj);
-                                key = getJsonObj;
-                                value = jsonObject.getString(key);
-                                Log.v("Book Title key", key + "\t" + value);
-
-                                MessageSender.sendBroadcast(MainActivity.this, value, key);
-                            }
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-
-                    public void onFinish() {
-                        start();
-                    }
-                }.start();*/
-
+            }
+        });
+        stop_btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                countDownTimer.cancel();
             }
         });
 
     }
 
+    //timer to add data in json object and send data after 100ms
     public void newLogic() {
 
         try {
@@ -442,74 +386,33 @@ public class MainActivity extends AppCompatActivity {
                     txtspeed.setText(String.valueOf(Integer.parseInt(txtspeed.getText().toString())));
                     txtdistance.setText(String.valueOf(Integer.parseInt(txtdistance.getText().toString())));
                     txtodo.setText(String.valueOf(Integer.parseInt(txtodo.getText().toString())));
-                    txtvehiclechrg.setText(String.valueOf(Integer.parseInt(txtvehiclechrg.getText().toString())));
                     txtchrgtym.setText(String.valueOf(Integer.parseInt(txtchrgtym.getText().toString())));
                     txtsoc.setText(String.valueOf(Integer.parseInt(txtsoc.getText().toString())));
                     txtLowSoc.setText(String.valueOf(Integer.parseInt(txtLowSoc.getText().toString())));
                     txtbatterysoh.setText(String.valueOf(Integer.parseInt(txtbatterysoh.getText().toString())));
 
                     paramsarrayList.add(new Parameters("speed", String.valueOf(Integer.parseInt(txtspeed.getText().toString())), "123469"));
-                    paramsarrayList.add(new Parameters("distance", String.valueOf(Integer.parseInt(txtdistance.getText().toString())), "123456"));
+                    paramsarrayList.add(new Parameters("vehicle_range", String.valueOf(Integer.parseInt(txtdistance.getText().toString())), "123456"));
                     paramsarrayList.add(new Parameters("odo", String.valueOf(Integer.parseInt(txtodo.getText().toString())), "123456"));
-                    paramsarrayList.add(new Parameters("vehiclechrg", String.valueOf(Integer.parseInt(txtvehiclechrg.getText().toString())), "123456"));
-                    paramsarrayList.add(new Parameters("chrgtym", String.valueOf(Integer.parseInt(txtchrgtym.getText().toString())), "123456"));
+                    paramsarrayList.add(new Parameters("charging_time", String.valueOf(Integer.parseInt(txtchrgtym.getText().toString())), "123456"));
                     paramsarrayList.add(new Parameters("soc", String.valueOf(Integer.parseInt(txtsoc.getText().toString())), "123456"));
-                    paramsarrayList.add(new Parameters("lowSOC", String.valueOf(Integer.parseInt(txtLowSoc.getText().toString())), "123456"));
-                    paramsarrayList.add(new Parameters("batterySOH", String.valueOf(Integer.parseInt(txtbatterysoh.getText().toString())), "123456"));
-                    paramsarrayList.add(new Parameters("rightIND", String.valueOf(rightstr), "123456"));
-                    paramsarrayList.add(new Parameters("leftIND", String.valueOf(leftstr), "123456"));
-                    paramsarrayList.add(new Parameters("hazard", String.valueOf(hazardstr), "123456"));
-                    paramsarrayList.add(new Parameters("vehicle_err", String.valueOf(errorstr), "123456"));
-                    paramsarrayList.add(new Parameters("regen", String.valueOf(regenstr), "123456"));
-                    paramsarrayList.add(new Parameters("abs", String.valueOf(abs_str), "123456"));
+                    paramsarrayList.add(new Parameters("soc_low", String.valueOf(Integer.parseInt(txtLowSoc.getText().toString())), "123456"));
+                    paramsarrayList.add(new Parameters("battery_soh", String.valueOf(Integer.parseInt(txtbatterysoh.getText().toString())), "123456"));
 
+                    paramsarrayList.add(new Parameters("right_ttl", String.valueOf(rightstr), "123456"));
+                    paramsarrayList.add(new Parameters("left_ttl", String.valueOf(leftstr), "123456"));
+                    paramsarrayList.add(new Parameters("hazard_ttl", String.valueOf(hazardstr), "123456"));
+                    paramsarrayList.add(new Parameters("vehicle_error_ind", String.valueOf(errorstr), "123456"));
+                    paramsarrayList.add(new Parameters("regen_active", String.valueOf(regenstr), "123456"));
+                    paramsarrayList.add(new Parameters("abs_active", String.valueOf(abs_str), "123456"));
+                    paramsarrayList.add(new Parameters("reverse_mode", String.valueOf(reverse_str), "123456"));
 
+                    paramsarrayList.add(new Parameters("charging_status", String.valueOf(charge_mode_str), "123456"));
+                    paramsarrayList.add(new Parameters("riding_mode", String.valueOf(ride_mode_str), "123456"));
 
                     try {
                         //JSON object adding in list an creating new json array as per RE document.
                         JSONObject jsonObject = new JSONObject();
-                        /*boolean exit = false;
-                        long currentTimeMs = System.currentTimeMillis();
-                        long previousTimeSentMs = currentTimeMs;
-                        while (!exit){
-                            for (int i = 0; i < paramsarrayList.size(); i++) {
-                                currentTimeMs = System.currentTimeMillis();
-                                if(currentTimeMs - previousTimeSentMs > 2) {
-                                    try {
-                                        JSONObject speedJson = new JSONObject();
-                                        jsonObject.put("signal", paramsarrayList.get(i).getKey());
-                                        jsonObject.put("canid", paramsarrayList.get(i).getCanid());
-                                        jsonObject.put("data", paramsarrayList.get(i).getValue());
-                                        jsonObject.put("timestamp", System.currentTimeMillis());
-                                        speedJson.put("", jsonObject);
-
-                                        Iterator iteratorObj = speedJson.keys();
-                                        while (iteratorObj.hasNext()) {
-                                            String getJsonObj = (String) iteratorObj.next();
-                                            System.out.println("Book No.: " + "------>" + getJsonObj);
-                                            key = getJsonObj;
-                                            value = speedJson.getString(key);
-                                            Log.v("Book Title key", key + "\t" + value);
-
-                                            MessageSender.sendBroadcast(MainActivity.this, value, key);
-                                            previousTimeSentMs = System.currentTimeMillis();
-                                        }
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                    }
-                                }
-                            }
-                            break;
-                        }*/
-
-
-
-
-
-
-
-
-
                         for (int i = 0; i < paramsarrayList.size(); i++) {
                             int finalI = i;
                             new CountDownTimer(100, 2) {
@@ -520,7 +423,7 @@ public class MainActivity extends AppCompatActivity {
                                         jsonObject.put("canid", paramsarrayList.get(finalI).getCanid());
                                         jsonObject.put("data", paramsarrayList.get(finalI).getValue());
                                         jsonObject.put("timestamp", System.currentTimeMillis());
-                                        speedJson.put("", jsonObject);
+                                        speedJson.put("packet", jsonObject);
 
                                         Iterator iteratorObj = speedJson.keys();
                                         while (iteratorObj.hasNext()) {
@@ -541,14 +444,10 @@ public class MainActivity extends AppCompatActivity {
 
                                 }
                             }.start();
-
-
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-
-
                 }
 
                 @Override
